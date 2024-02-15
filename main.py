@@ -45,6 +45,8 @@ tokenizer.set_delimiters(['*', '-', '+'])
 class Input(BaseModel):
     sentence: str
 
+
+
 @app.post("/set_delimiters")
 def set_delimiters(delimiter: Input):
     delimiter_list = delimiter.list
