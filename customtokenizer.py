@@ -25,20 +25,3 @@ class CustomSentenceTokenizer:
         sentences = [sentence.strip() for sentence in sentences if sentence.strip()]
         return sentences
 
-# Example usage:
-tokenizer = CustomSentenceTokenizer()
-
-# Set custom regex pattern
-tokenizer.set_regex_pattern(r'\n+')
-
-# Set custom delimiters
-tokenizer.set_delimiters(['*', '-', '+'])
-
-# Example paragraph
-paragraph = "This is the first sentence. This is the second sentence! And finally, the third sentence? - This is a bullet point. * This is another bullet point. Single,word,list,sentences"
-
-# Tokenize the paragraph
-sentences = tokenizer.tokenize(paragraph)
-
-# Print the array of sentences
-print(sentences)

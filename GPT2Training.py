@@ -27,7 +27,6 @@ template_sentences = [
     # Add more template sentences as needed
 ]
 
-
 tokenizer = CustomSentenceTokenizer()
 tokenizer.set_delimiters(['•','*','-','+', ':','●'])
 tokenizer.default_regex_pattern()
@@ -59,9 +58,6 @@ for ent in doc.ents:
 # Convert attention mask to tensor
 attention_mask_tensor = torch.tensor(attention_mask)
 
-# Print attention mask
-print("Attention Mask:", attention_mask)
-
 # Load pre-trained GPT-2 model and tokenizer
 model_name = "gpt2"
 tokenizer = GPT2Tokenizer.from_pretrained(model_name)
@@ -72,12 +68,6 @@ input_template_sentences = "The quick brown fox"
 
 # Tokenize input template_sentences
 input_ids = tokenizer.encode(input_template_sentences, return_tensors="pt")
-
-# Generate attention mask tensor (1 for valid tokens, 0 for padding)
-attention_mask = torch.ones_like(input_ids)
-
-# Set attention mask for padding tokens to 0
-attention_mask[input_ids == tokenizer.pad_token_id] = 0
 
 # Generate template_sentences with attention mask
 output = model.generate(input_ids=input_ids, attention_mask=attention_mask, max_length=50)
