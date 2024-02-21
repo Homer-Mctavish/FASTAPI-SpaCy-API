@@ -3,26 +3,27 @@ import spacy
 from pydantic import BaseModel
 import re
 from customtokenizer import CustomSentenceTokenizer
+from transformers import GPT2Tokenizer, GPT2LMHeadModel
 
-en_core_web = spacy.load("en_core_web_sm")
 
+nlp = spacy.load("en_core_web_sm")
 app = FastAPI(tags=['sentence'])
-
 tokenizer=CustomSentenceTokenizer()
+model_name="gpt2"
+gptokenizer=GPT2Tokenizer.from_pretrained(model_name)
+model = GPT2LMHeadModel.from_pretrained(model_name)
 
 class Input(BaseModel):
-    sentence: str
-
+    text: str
 
 @app.put("/set_delimiters")
 async def set_delimiters(delimiter: Input):
-    delimiter_list = delimiter.sentence.split(',')
+    delimiter_list = delimiter.text.split(',')
     tokenizer.set_delimiters(delimiter_list)
-    if listofdelim != None:
+    if delimiter_list != None:
         return {"message": "special characters set successfully"}
     else:
         raise HTTPException(status_code=404, detail="special characters not set")
-
 
 
 @app.put("/set_regex")
@@ -35,23 +36,14 @@ def set_regex(regexpress: Input):
         raise HTTPException(status_code=404, detail="special characters not set")
 
 
-# @app.post("/analyze_text")
-# def get_text_characteristics(sentence_input: Input):
-#     document = en_core_web(sentence_input.sentence)
-#     output_array = []
-#     for token in document:
-#         output = {
-#             "Index": token.i, "Token": token.text, "Tag": token.tag_, "POS": token.pos_,
-#             "Dependency": token.dep_, "Lemma": token.lemma_, "Shape": token.shape_,
-#             "Alpha": token.is_alpha, "Is Stop Word": token.is_stop
-#         }
-#         output_array.append(output)
-#     return {"output": output_array}
 
+currentresumestring=""
 @app.post("/entity_recognition")
 def get_entity(sentence_input: Input):
-    document = en_core_web(sentence_input.sentence)
     output_array = []
+    tokenstart= tokenizer.tokenize(sentence_input.text)
+    texto=" ".join(tokenstart)
+    document = nlp(texto)
     for token in document.ents:
         output = {
             "Text": token.text, "Start Char": token.start_char,
@@ -60,30 +52,35 @@ def get_entity(sentence_input: Input):
         output_array.append(output)
     return {"output": output_array}
 
-def create_masking(data):
+def create_masking(nlpmodel):
     # Initialize attention mask
-    attention_mask = [0] * len(doc)
+    attention_mask = [0] * len(nlpmodel)
 
 
     # Generate attention mask based on named entity annotations
-    for ent in doc.text:
+    for ent in nlpmodel.ents:
         for i in range(ent.start, ent.end):
             attention_mask[i] = 1
+    attention_mask_tensor = torch.tensor(attention_mask)
+    return attention_mask_tensor
 
-# Tokenize input template_sentences
-input_ids = tokenizer.encode(input_template_sentences, return_tensors="pt")
 
-# Generate template_sentences with attention mask
-output = model.generate(input_ids=input_ids, attention_mask=attention_mask, max_length=50)
+def load_doc(filename):
+    # open the file as read only
+    file = open(filename, mode='rt', encoding='utf-8')
+    # read all text
+    text = file.read()
+    # close the file
+    file.close()
+    return text
 
-# Decode generated output
-generated_template_sentences = tokenizer.decode(output[0], skip_special_tokens=True)
+input_template_letters = load_doc('training.txt')
 
-model_name="gpt2"
-gptokenizer=GPT2Tokenizer.from_pretrained(model_name)
-model = GPT2LMHeadModel.from_pretrained(model_name)
-@app.post("/gptraining")
+tokenized_text = gptokenizer.encode(input_template_letters, return_tensors="pt")
+
+@app.post("/gpttext")
 def training(nermask: list):
+    attention_mask = create_masking(nlp)
     model.generate(input_ids=input_ids, attention_mask=attention_mask, max_length=500)
     generated_template_sentences= gptokenizer.decode(output[0], skip_special_tokens=True)
 
