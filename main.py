@@ -8,11 +8,44 @@ from transformers import GPT2Tokenizer, GPT2LMHeadModel, TextDataset, DataCollat
 from typing import List
 import torch
 import fitz  # PyMuPDF
+from spacy.pipeline import EntityRuler
+from spacy.language import Language
+import json
+
+
+def create_entity_ruler(nlp, name):
+    # Create a new EntityRuler
+    ruler = EntityRuler(nlp, name=name)
+
+    # Load training data from JSONL file
+    with open("skill_patterns.jsonl", "r") as file:
+        for line in file:
+            data = json.loads(line)
+            text = data["pattern"]
+            label = data["label"]
+            # Create pattern dictionary
+            pattern = {"label": label, "pattern": text}
+            # Add pattern to the EntityRuler
+            ruler.add_patterns([pattern])
+
+    return ruler
+
+Language.factory("ent_rule", func=create_entity_ruler)
+
+
+# Load existing spaCy model from disk
+nlp = spacy.load("en_core_web_sm")
+
+
+
+# Add the EntityRuler to the pipeline and specify a name
+nlp.add_pipe('ent_rule', name="entity_ruler2", before="ner")
+
 
 #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device = ("cpu")
 
-nlp = spacy.load("en_core_web_sm")
+
 app = FastAPI(tags=['sentence'])
 tokenizer=CustomSentenceTokenizer()
 model_name="gpt2"
@@ -45,6 +78,7 @@ def nlp_ent_detect(pdfnewlines: list):
         nlpsentence = nlp(line)
         entlist.append(nlpsentence)
     return entlist
+
 
 
 # Load tokenizer and model
@@ -131,12 +165,12 @@ def training(input_text: str):
         model.to(device)
         attention_mask_set = createmask(entites, long_string_length)
         input_ids = gptokenizer.encode(input_text, return_tensors="pt").to(device)
-        output = model.generate(input_ids=input_ids, attention_mask=attention_mask_set, max_length=500)
+        output = model.generate(input_ids=input_ids, attention_mask=attention_mask_set, max_length=250)
         generated_template_coverletter= gptokenizer.decode(output[0], skip_special_tokens=True)
     else:
         model.to(device)
         input_ids = gptokenizer.encode(input_text, return_tensors="pt").to(device)
-        output = model.generate(input_ids=input_ids, max_length=500)
+        output = model.generate(input_ids=input_ids, max_length=250)
         generated_template_coverletter = gptokenizer.decode(output[0], skip_special_tokens=True)
     if generated_template_coverletter:
         return {"message": generated_template_coverletter}
