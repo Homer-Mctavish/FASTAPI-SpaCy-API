@@ -4,11 +4,13 @@ import spacy
 from pydantic import BaseModel
 import re
 from customtokenizer import CustomSentenceTokenizer
-from transformers import GPT2Tokenizer, GPT2LMHeadModel
+from transformers import GPT2Tokenizer, GPT2LMHeadModel, TextDataset, DataCollatorForLanguageModeling, Trainer, TrainingArguments
 from typing import List
 import torch
 import fitz  # PyMuPDF
 
+#device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = ("cpu")
 
 nlp = spacy.load("en_core_web_sm")
 app = FastAPI(tags=['sentence'])
@@ -45,29 +47,39 @@ def nlp_ent_detect(pdfnewlines: list):
     return entlist
 
 
-# Open the text file for reading
-with open('training.txt', 'r') as file:
-    # Read the content of the file
-    lines = file.readlines()
+# Load tokenizer and model
+tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+model = GPT2LMHeadModel.from_pretrained("gpt2")
 
-# Initialize lists to store separated strings
-separated_strings = []
-current_string = []
+#torch.set_default_tensor_type(torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor)
+torch.set_default_tensor_type(torch.FloatTensor)
+model.to(device)
 
-# Iterate through the lines of the file
-for line in lines:
-    # Check if the line contains "Dear Hiring Manager,"
-    if "Dear Hiring Manager," in line:
-        # If there's a current string, append it to the list of separated strings
-        if current_string:
-            separated_strings.append(''.join(current_string))
-            current_string = []  # Reset current string
-    # Append the current line to the current string
-    current_string.append(line)
 
-# Append the last current string to the list of separated strings
-if current_string:
-    separated_strings.append(''.join(current_string))
+# Prepare dataset
+dataset = TextDataset(tokenizer=tokenizer, file_path="training.txt", block_size=128)
+data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
+
+# Define training arguments
+training_args = TrainingArguments(
+    output_dir="./output",
+    overwrite_output_dir=True,
+    num_train_epochs=3,
+    per_device_train_batch_size=8,
+    save_steps=10_000,
+    save_total_limit=2,
+    prediction_loss_only=True,
+)
+
+# Create Trainer instance and start training
+trainer = Trainer(
+    model=model,
+    args=training_args,
+    data_collator=data_collator,
+    train_dataset=dataset,
+)
+
+trainer.train()
 
 @app.put("/set_delimiters")
 async def set_delimiters(delimiters: StringInput):
@@ -97,33 +109,37 @@ async def receive_string(string_input: StringInput):
         output_array.append(output)
     return {"output": output_array}
 
-@app.post("/lelsos")
-async def ert():
-    return{"Mass age": entities}
+def createmask(entitylistfromspacy: list, long_string: int):
+    # Create attention mask
+    attention_mask = [0] * long_string
+    for start, end in entitylistfromspacy:
+        attention_mask[start:end] = [1] * (end - start)
 
-# Create attention mask
-attention_mask = [0] * long_string_length
-for start, end in entities:
-    attention_mask[start:end] = [1] * (end - start)
+    # Pad attention mask to match input sequence length
+    max_seq_length = 500
+    attention_mask += [0] * (max_seq_length - len(attention_mask))
+    attention_mask = attention_mask[:max_seq_length]
 
-# Pad attention mask to match input sequence length
-max_seq_length = 500
-attention_mask += [0] * (max_seq_length - len(attention_mask))
-attention_mask = attention_mask[:max_seq_length]
+    # Convert attention mask to tensor
+    attention_mask_tensor = torch.tensor(attention_mask).to(device)
+    return attention_mask_tensor
 
-# Convert attention mask to tensor
-attention_mask_tensor = torch.tensor(attention_mask)
-
-for stringu in separated_strings:
-    # Tokenize the string using the GPT-2 tokenizer
-    gptokenizer.encode(stringu, return_tensors="pt")
 
 @app.post("/gpttext")
-def training():
-    text = model.generate(input_ids=input_ids, attention_mask=attention_mask_tensor, max_length=500)
-    generated_template_sentences= gptokenizer.decode(output[0], skip_special_tokens=True)
-    if text != None:
-        return {"message": text}
+def training(input_text: str):
+    if entities:
+        model.to(device)
+        attention_mask_set = createmask(entites, long_string_length)
+        input_ids = gptokenizer.encode(input_text, return_tensors="pt").to(device)
+        output = model.generate(input_ids=input_ids, attention_mask=attention_mask_set, max_length=500)
+        generated_template_coverletter= gptokenizer.decode(output[0], skip_special_tokens=True)
+    else:
+        model.to(device)
+        input_ids = gptokenizer.encode(input_text, return_tensors="pt").to(device)
+        output = model.generate(input_ids=input_ids, max_length=500)
+        generated_template_coverletter = gptokenizer.decode(output[0], skip_special_tokens=True)
+    if generated_template_coverletter:
+        return {"message": generated_template_coverletter}
     else:
         raise HTTPException(status_code=404, detail="failed to generate letter")
 
