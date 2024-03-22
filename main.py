@@ -1,8 +1,6 @@
 from fastapi import FastAPI
 import spacy
 from pydantic import BaseModel
-<<<<<<< Updated upstream
-=======
 import re
 from customtokenizer import CustomSentenceTokenizer
 from transformers import GPT2Tokenizer, GPT2LMHeadModel, TextDataset, DataCollatorForLanguageModeling, Trainer, TrainingArguments, pipeline
@@ -44,41 +42,19 @@ nlp.add_pipe('ent_rule', name="entity_ruler2", before="ner")
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #device = ("cpu")
->>>>>>> Stashed changes
 
 en_core_web = spacy.load("en_core_web_sm")
 
 app = FastAPI(tags=['sentence'])
-<<<<<<< Updated upstream
-=======
 tokenizer=CustomSentenceTokenizer()
 model_name="GPT2-Prompt"
 gptokenizer=GPT2Tokenizer.from_pretrained(model_name)
 model = GPT2LMHeadModel.from_pretrained(model_name)
 currentresumestring=""
->>>>>>> Stashed changes
 
 class Input(BaseModel):
     sentence: str
 
-<<<<<<< Updated upstream
-@app.post("/analyze_text")
-def get_text_characteristics(sentence_input: Input):
-    document = en_core_web(sentence_input.sentence)
-    output_array = []
-    for token in document:
-        output = {
-            "Index": token.i, "Token": token.text, "Tag": token.tag_, "POS": token.pos_,
-            "Dependency": token.dep_, "Lemma": token.lemma_, "Shape": token.shape_,
-            "Alpha": token.is_alpha, "Is Stop Word": token.is_stop
-        }
-        output_array.append(output)
-    return {"output": output_array}
-
-@app.post("/entity_recognition")
-def get_entity(sentence_input: Input):
-    document = en_core_web(sentence_input.sentence)
-=======
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -146,7 +122,6 @@ long_string_length = 1
 entities=[]
 @app.post("/endpoint")
 async def receive_string(string_input: StringInput):
->>>>>>> Stashed changes
     output_array = []
     for token in document.ents:
         output = {
@@ -154,9 +129,6 @@ async def receive_string(string_input: StringInput):
             "End Char": token.end_char, "Label": token.label_
         }
         output_array.append(output)
-<<<<<<< Updated upstream
-    return {"output": output_array}
-=======
     return {"output": output_array}
 
 def createmask(entitylistfromspacy: list, long_string: int):
@@ -220,4 +192,3 @@ def training(input_text: str):
         raise HTTPException(status_code=404, detail="failed to generate letter")
 
 
->>>>>>> Stashed changes
