@@ -1,0 +1,10 @@
+output: dictionary of various classsifications and their
+associated words. 
+
+find "SKILL" classification in output, return text associated
+find "PLACE" classification in putout return text associated
+
+construct prompt: "Write cover letter for {position submitted
+when POST req is sent in} at {position company/org submitted when
+POST req is sent in} describing skills in {SKILL} and prior work 
+using them at {PLACE}."

@@ -1,0 +1,13 @@
+app = "Resuyay"
+
+[[services]]
+  internal_port = 80
+  protocol = "tcp"
+
+  [[services.ports]]
+    handlers = ["http"]
+    port = "80"
+
+[[deploy.targets]]
+  name = "resuyay"
+  dockerImage = "tunefunright/resuyay:latest"
