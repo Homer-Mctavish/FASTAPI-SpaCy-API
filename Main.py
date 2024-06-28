@@ -108,7 +108,7 @@ async def generate_text(request: PromptRequest):
             "meta/meta-llama-3-70b-instruct",
             input=input
         ):
-            print(event, end="")
+            print(event["output"], end="")
             return({"generated_text": event})
 #=> "Let's break this problem down step by step.\n\nStep 1: S...
     except Exception as e:

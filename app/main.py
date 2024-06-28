@@ -4,9 +4,9 @@ import spacy
 from pydantic import BaseModel
 import re
 from customtokenizer import CustomSentenceTokenizer
-from transformers import GPT2Tokenizer, GPT2LMHeadModel, TextDataset, DataCollatorForLanguageModeling, Trainer, TrainingArguments
+# from transformers import GPT2Tokenizer, GPT2LMHeadModel, TextDataset, DataCollatorForLanguageModeling, Trainer, TrainingArguments
 from typing import List
-import torch
+# import torch
 # import fitz  # PyMuPDF
 from spacy.pipeline import EntityRuler
 from spacy.language import Language
@@ -42,15 +42,15 @@ nlp = spacy.load("en_core_web_sm")
 nlp.add_pipe('ent_rule', name="entity_ruler2", before="ner")
 
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # device = ("cpu")
 
 
 app = FastAPI(tags=['sentence'])
 tokenizer=CustomSentenceTokenizer()
-model_name="GPT2-Prompt"
-gptokenizer=GPT2Tokenizer.from_pretrained(model_name)
-model = GPT2LMHeadModel.from_pretrained(model_name)
+# model_name="GPT2-Prompt"
+# gptokenizer=GPT2Tokenizer.from_pretrained(model_name)
+# model = GPT2LMHeadModel.from_pretrained(model_name)
 currentresumestring=""
 
 # Define CORS settings
@@ -65,7 +65,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],  # Add allowed HTTP methods
+    allow_methods=["POST"],  # Add allowed HTTP methods
     allow_headers=["*"],  # Allow any headers, you can customize this as needed
 )
 
@@ -81,34 +81,34 @@ def nlp_ent_detect(pdfnewlines: list):
 
 
 # torch.set_default_tensor_type(torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor)
-torch.set_default_tensor_type(torch.FloatTensor)
-model.to(device)
+# torch.set_default_tensor_type(torch.FloatTensor)
+# model.to(device)
 
 
 # Prepare dataset
-dataset = TextDataset(tokenizer=gptokenizer, file_path="training.txt", block_size=128)
-data_collator = DataCollatorForLanguageModeling(tokenizer=gptokenizer, mlm=False)
+# dataset = TextDataset(tokenizer=gptokenizer, file_path="training.txt", block_size=128)
+# data_collator = DataCollatorForLanguageModeling(tokenizer=gptokenizer, mlm=False)
 
-# Define training arguments
-training_args = TrainingArguments(
-    output_dir="./output",
-    overwrite_output_dir=True,
-    num_train_epochs=3,
-    per_device_train_batch_size=8,
-    save_steps=10_000,
-    save_total_limit=2,
-    prediction_loss_only=True,
-)
+# # Define training arguments
+# training_args = TrainingArguments(
+#     output_dir="./output",
+#     overwrite_output_dir=True,
+#     num_train_epochs=100,
+#     per_device_train_batch_size=8,
+#     save_steps=10_000,
+#     save_total_limit=2,
+#     prediction_loss_only=True,
+# )
 
-# Create Trainer instance and start training
-trainer = Trainer(
-    model=model,
-    args=training_args,
-    data_collator=data_collator,
-    train_dataset=dataset,
-)
+# # Create Trainer instance and start training
+# trainer = Trainer(
+#     model=model,
+#     args=training_args,
+#     data_collator=data_collator,
+#     train_dataset=dataset,
+# )
 
-trainer.train()
+# trainer.train()
 
 # @app.put("/set_delimiters")
 # async def set_delimiters(delimiters: StringInput):
@@ -138,66 +138,66 @@ async def receive_string(string_input: StringInput):
         output_array.append(output)
     return {"output": output_array}
 
-def createmask(entitylistfromspacy: list, long_string: int):
-    # Create attention mask
-    attention_mask = [0] * long_string
-    for start, end in entitylistfromspacy:
-        attention_mask[start:end] = [1] * (end - start)
+# def createmask(entitylistfromspacy: list, long_string: int):
+#     # Create attention mask
+#     attention_mask = [0] * long_string
+#     for start, end in entitylistfromspacy:
+#         attention_mask[start:end] = [1] * (end - start)
 
-    # Pad attention mask to match input sequence length
-    max_seq_length = 500
-    attention_mask += [0] * (max_seq_length - len(attention_mask))
-    attention_mask = attention_mask[:max_seq_length]
+#     # Pad attention mask to match input sequence length
+#     max_seq_length = 500
+#     attention_mask += [0] * (max_seq_length - len(attention_mask))
+#     attention_mask = attention_mask[:max_seq_length]
 
-    # Convert attention mask to tensor
-    attention_mask_tensor = torch.tensor(attention_mask).to(device)
-    return attention_mask_tensor
+#     # Convert attention mask to tensor
+#     attention_mask_tensor = torch.tensor(attention_mask).to(device)
+#     return attention_mask_tensor
 
 
-def generate_with_attention_mask(input_text, attention_mask=None, max_length=500, repetition_penalty=2.0, temperature=0.8, top_p=0.9):
-    # Tokenize the input text
-    input_ids = gptokenizer(input_text, return_tensors="pt").input_ids.to(device)
+# def generate_with_attention_mask(input_text, attention_mask=None, max_length=500, repetition_penalty=2.0, temperature=0.8, top_p=0.9):
+#     # Tokenize the input text
+#     input_ids = gptokenizer(input_text, return_tensors="pt").input_ids.to(device)
     
-    # Create default attention mask if not provided
-    if attention_mask is None:
-        attention_mask = torch.ones_like(input_ids).to(device)
+#     # Create default attention mask if not provided
+#     if attention_mask is None:
+#         attention_mask = torch.ones_like(input_ids).to(device)
 
-    # Generate text with the model, using the input text as context
-    output = model.generate(input_ids,
-                             attention_mask=attention_mask,
-                             max_length=max_length,
-                             do_sample=True,
-                             temperature=temperature,
-                             top_p=top_p,
-                             repetition_penalty=repetition_penalty,
-                             num_return_sequences=1
-                            )
+#     # Generate text with the model, using the input text as context
+#     output = model.generate(input_ids,
+#                              attention_mask=attention_mask,
+#                              max_length=max_length,
+#                              do_sample=True,
+#                              temperature=temperature,
+#                              top_p=top_p,
+#                              repetition_penalty=repetition_penalty,
+#                              num_return_sequences=1
+#                             )
 
-    # Decode the generated text
-    generated_text = gptokenizer.decode(output[0], skip_special_tokens=True)
+#     # Decode the generated text
+#     generated_text = gptokenizer.decode(output[0], skip_special_tokens=True)
 
-    return generated_text
+#     return generated_text
 
 
 
-@app.post("/gpttext")
-def training(input_text: str):
-    if entities:
-        model.to(device)
-        attention_mask_set = createmask(entites, long_string_length)
-        generated_template_coverletter = generate_with_attention_mask(input_text=input_text, attention_mask=attention_mask_set)
-        # input_ids = gptokenizer.encode(input_text, return_tensors="pt").to(device)
-        # output = model.generate(input_ids=input_ids, attention_mask=attention_mask_set, max_length=500)
-        # generated_template_coverletter= gptokenizer.decode(output[0], skip_special_tokens=True)
-    else:
-        model.to(device)
-        generated_template_coverletter = generate_with_attention_mask(input_text=input_text, attention_mask=None)
-    #     input_ids = gptokenizer.encode(input_text, return_tensors="pt").to(device)
-    #     output = model.generate(input_ids=input_ids, max_length=500)
-    #     generated_template_coverletter = gptokenizer.decode(output[0], skip_special_tokens=True)
-    if generated_template_coverletter:
-        return {"message": generated_template_coverletter}
-    else:
-        raise HTTPException(status_code=404, detail="failed to generate letter")
+# @app.post("/gpttext")
+# def training(input_text: str):
+#     if entities:
+#         model.to(device)
+#         attention_mask_set = createmask(entites, long_string_length)
+#         generated_template_coverletter = generate_with_attention_mask(input_text="Write a cover letter for this job description: " + input_text, attention_mask=attention_mask_set)
+#         # input_ids = gptokenizer.encode(input_text, return_tensors="pt").to(device)
+#         # output = model.generate(input_ids=input_ids, attention_mask=attention_mask_set, max_length=500)
+#         # generated_template_coverletter= gptokenizer.decode(output[0], skip_special_tokens=True)
+#     else:
+#         model.to(device)
+#         generated_template_coverletter = generate_with_attention_mask(input_text=input_text, attention_mask=None)
+#     #     input_ids = gptokenizer.encode(input_text, return_tensors="pt").to(device)
+#     #     output = model.generate(input_ids=input_ids, max_length=500)
+#     #     generated_template_coverletter = gptokenizer.decode(output[0], skip_special_tokens=True)
+#     if generated_template_coverletter:
+#         return {"message": generated_template_coverletter}
+#     else:
+#         raise HTTPException(status_code=404, detail="failed to generate letter")
 
 
