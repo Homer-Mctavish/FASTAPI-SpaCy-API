@@ -1,0 +1,30 @@
+# flyctl launch added from .gitignore
+**/bin
+**/lib64
+**/lib
+**/share
+**/output
+**/__pycache__
+
+# flyctl launch added from lib/python3.11/site-packages/nibabel/.gitignore
+# Packages #
+############
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods
+lib/python3.11/site-packages/nibabel/**/*.7z
+lib/python3.11/site-packages/nibabel/**/*.bz2
+lib/python3.11/site-packages/nibabel/**/*.bzip2
+lib/python3.11/site-packages/nibabel/**/*.dmg
+lib/python3.11/site-packages/nibabel/**/*.gz
+lib/python3.11/site-packages/nibabel/**/*.iso
+lib/python3.11/site-packages/nibabel/**/*.jar
+lib/python3.11/site-packages/nibabel/**/*.rar
+lib/python3.11/site-packages/nibabel/**/*.tar
+lib/python3.11/site-packages/nibabel/**/*.tbz2
+lib/python3.11/site-packages/nibabel/**/*.tgz
+lib/python3.11/site-packages/nibabel/**/*.zip
+
+# flyctl launch added from lib/python3.11/site-packages/nibabel/tests/data/.gitignore
+lib/python3.11/site-packages/nibabel/tests/data/**/anat_moved.nii
+lib/python3.11/site-packages/nibabel/tests/data/**/resampled_functional.nii
+fly.toml
